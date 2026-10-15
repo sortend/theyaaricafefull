@@ -1,0 +1,2 @@
+export const metadata = { title: "Our story — The Yaari Café" };
+export default function Page() { return <main className="section" style={{ paddingTop: 140, maxWidth: 760 }}><h2>Our story</h2><p style={{ color: "var(--muted)" }}>The Yaari Café began with a simple idea: great coffee tastes better with good company. We roast thoughtfully, cook to order, and treat every guest like a friend.</p></main>; }
