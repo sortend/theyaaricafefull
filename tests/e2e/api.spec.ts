@@ -10,6 +10,10 @@ test("checkout rejects malformed input", async ({ request }) => expect((await re
 test("checkout requires sign-in", async ({ request }) => expect((await request.post("/api/checkout", { data: { type: "pickup", items: [{ menuItemId: id, quantity: 1 }] } })).status()).toBe(401));
 test("payment webhook rejects missing and bad signatures", async ({ request }) => {
   expect((await request.post("/api/webhooks/payment", { data: { a: 1 } })).status()).toBe(401);
-  expect((await request.post("/api/webhooks/payment", { data: { a: 1 }, headers: { "x-signature": "bad" } })).status()).toBe(401);
+  expect((await request.post("/api/webhooks/payment", { data: { a: 1 }, headers: { "x-razorpay-signature": "bad" } })).status()).toBe(401);
 });
 test("notify endpoint rejects a wrong secret", async ({ request }) => expect((await request.post("/api/notify", { data: {}, headers: { "x-notify-secret": "nope" } })).status()).toBe(401));
+test("pay endpoint validates and requires sign-in", async ({ request }) => {
+  expect((await request.post("/api/pay", { data: { orderId: "x" } })).status()).toBe(400);
+  expect((await request.post("/api/pay", { data: { orderId: id } })).status()).toBe(401);
+});

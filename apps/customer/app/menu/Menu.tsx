@@ -25,7 +25,7 @@ export function Menu({ items }: { items: Item[] }) {
   const [lines, setLines] = useState<Line[]>([]);
   const [type, setType] = useState<"pickup" | "delivery" | "dine_in">("pickup");
   const [addr, setAddr] = useState({ line1: "", city: "", postalCode: "", phone: "" });
-  const [msg, setMsg] = useState(""); const [busy, setBusy] = useState(false);
+  const [pay, setPay] = useState<"online" | "cod">("online"); const [msg, setMsg] = useState(""); const [busy, setBusy] = useState(false);
   const estimate = lines.reduce((s, l) => s + unit(l) * l.quantity, 0); // display only; the server recomputes
   const add = (item: Item, optionIds: string[]) => setLines((ls) => { const n: Line = { item, optionIds, quantity: 1 }; const i = ls.findIndex((l) => key(l) === key(n)); return i < 0 ? [...ls, n] : ls.map((l, j) => (j === i ? { ...l, quantity: Math.min(50, l.quantity + 1) } : l)); });
   const bump = (k: string, d: number) => setLines((ls) => ls.map((l) => (key(l) === k ? { ...l, quantity: l.quantity + d } : l)).filter((l) => l.quantity > 0));
@@ -33,7 +33,7 @@ export function Menu({ items }: { items: Item[] }) {
   async function checkout() {
     setBusy(true); setMsg("");
     const res = await fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, items: lines.map((l) => ({ menuItemId: l.item.id, quantity: l.quantity, optionIds: l.optionIds })), address: type === "delivery" ? addr : undefined }) }).catch(() => null);
+      body: JSON.stringify({ type, paymentMethod: pay, items: lines.map((l) => ({ menuItemId: l.item.id, quantity: l.quantity, optionIds: l.optionIds })), address: type === "delivery" ? addr : undefined }) }).catch(() => null);
     const body = res ? await res.json().catch(() => null) : null; setBusy(false);
     if (!res || !body) { window.location.href = "/order/failed"; return; }
     if (res.status === 401) { window.location.href = "/login"; return; }
@@ -53,6 +53,7 @@ export function Menu({ items }: { items: Item[] }) {
           {l.item.name}{l.optionIds.length > 0 && <small style={{ color: "var(--muted)" }}> — {l.item.item_options.filter((o) => l.optionIds.includes(o.id)).map((o) => o.name).join(", ")}</small>} · {money(unit(l))}
           <span className="qty" style={{ display: "inline-flex", marginLeft: 12, marginTop: 0 }}><button aria-label={`Remove one ${l.item.name}`} onClick={() => bump(key(l), -1)}>−</button><span aria-live="polite">{l.quantity}</span><button aria-label={`Add one ${l.item.name}`} onClick={() => bump(key(l), 1)}>+</button></span></li>)}</ul>
         <label>Order type<select value={type} onChange={(e) => setType(e.target.value as any)}><option value="pickup">Pickup</option><option value="delivery">Delivery</option><option value="dine_in">Dine-in</option></select></label>
+        <label>Payment<select value={pay} onChange={(e) => setPay(e.target.value as any)}><option value="online">Pay online (UPI, card, netbanking)</option><option value="cod">{type === "delivery" ? "Cash on delivery" : type === "pickup" ? "Pay cash at pickup" : "Pay cash at the table"}</option></select></label>
         {type === "delivery" && (["line1", "city", "postalCode", "phone"] as const).map((k) => <label key={k}>{k}<input value={addr[k]} onChange={(e) => setAddr({ ...addr, [k]: e.target.value })} /></label>)}
         <p>Estimated subtotal: <span className="price">{money(estimate)}</span><br /><small style={{ color: "var(--muted)" }}>Tax and fees are calculated securely on the server.</small></p>
         <button className="btn solid" disabled={!lines.length || busy} onClick={checkout}>{busy ? "Placing…" : "Place order"}</button>

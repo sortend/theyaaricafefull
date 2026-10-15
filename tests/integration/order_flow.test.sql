@@ -49,4 +49,37 @@ begin
   reset role;
   raise notice 'ALL VARIANT ASSERTIONS PASSED';
 end $$;
+do $$
+declare v_item uuid; v_o uuid; v_on uuid; v_items jsonb;
+begin
+  insert into auth.users(id,email) values ('00000000-0000-0000-0000-0000000000d1','del@test.local'),('00000000-0000-0000-0000-0000000000a1','owner@test.local');
+  update profiles set role='delivery' where id='00000000-0000-0000-0000-0000000000d1';
+  update profiles set role='owner' where id='00000000-0000-0000-0000-0000000000a1';
+  select id into v_item from menu_items where published limit 1;
+  v_items := jsonb_build_array(jsonb_build_object('menuItemId',v_item,'quantity',1));
+  perform pg_temp.act('00000000-0000-0000-0000-0000000000c1');
+  v_o := place_order('delivery', v_items, '{"line1":"12 Test Rd","city":"Arrah","postalCode":"802301","phone":"9999999999"}'::jsonb, null, 'cod');
+  v_on := place_order('pickup', v_items, null, null);
+  assert pg_temp.fails(format('select place_order(''pickup'', %L::jsonb, null, null, ''barter'')', v_items::text)), 'unknown payment method rejected';
+  assert pg_temp.fails(format('select record_cash_payment(%L)', v_o)), 'customer cannot mark cash paid';
+  reset role; perform pg_temp.act('00000000-0000-0000-0000-0000000000b1');
+  assert pg_temp.fails(format('select record_cash_payment(%L)', v_o)), 'kitchen cannot mark cash paid';
+  reset role; perform pg_temp.act('00000000-0000-0000-0000-0000000000d1');
+  assert pg_temp.fails(format('select record_cash_payment(%L)', v_o)), 'unassigned rider cannot record cash';
+  reset role; perform pg_temp.act('00000000-0000-0000-0000-0000000000a1');
+  perform assign_delivery(v_o, '00000000-0000-0000-0000-0000000000d1');
+  perform transition_order(v_o,'accepted'); perform transition_order(v_o,'preparing'); perform transition_order(v_o,'ready');
+  reset role; perform pg_temp.act('00000000-0000-0000-0000-0000000000d1');
+  assert pg_temp.fails(format('select record_cash_payment(%L)', v_o)), 'rider cannot record before pickup';
+  reset role; perform pg_temp.act('00000000-0000-0000-0000-0000000000a1');
+  perform transition_order(v_o,'out_for_delivery');
+  assert pg_temp.fails(format('select record_cash_payment(%L)', v_on)), 'online order is not a cash order';
+  reset role; perform pg_temp.act('00000000-0000-0000-0000-0000000000d1');
+  perform record_cash_payment(v_o);
+  assert pg_temp.fails(format('select record_cash_payment(%L)', v_o)), 'cannot record cash twice';
+  reset role;
+  assert (select payment_status from orders where id = v_o) = 'paid';
+  assert (select count(*) from payments where order_id = v_o and provider = 'cash' and status = 'paid') = 1;
+  raise notice 'ALL CASH ASSERTIONS PASSED';
+end $$;
 rollback;

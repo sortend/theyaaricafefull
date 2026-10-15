@@ -46,6 +46,14 @@
 - Playwright API-level e2e (`pnpm --filter @yaari/customer build && pnpm test:e2e`): 6/6 pass against the built customer app. Browser (UI) e2e NOT written/run: Chromium could not be downloaded in the build sandbox
 - SQL test extended with variant assertions; passes
 
+## Added in pass 9 (India / Razorpay)
+- Migration 0008 (refunds, provider_payment_id); `/api/pay` starts Razorpay checkout; webhook verifies `x-razorpay-signature` and is the only thing that sets paid/failed/refunded; owner-only `/api/refund` (admin); success page confirms payment via webhook, never the redirect; setup: docs/SUPABASE_SETUP.md. NOT yet tested against live Razorpay test mode.
+
+## Added in pass 10
+- Migration 0009: cash on delivery (`payment_method`, `record_cash_payment` for owner or the assigned rider only); admin Categories screen + category pickers in Menu; delivery app shows cash due; kitchen shows method
+- 6 browser UI tests written (`pnpm test:ui`, need Chromium) — NOT run here; API e2e 7/7 pass; SQL cash assertions pass
+- Full setup guide: docs/SUPABASE_SETUP.md
+
 ## Not done yet
 Customer UI/3D/animation, cart, checkout route, auth screens, kitchen realtime board, delivery flow,
 admin CRUD/analytics, inventory, reservations, payment provider + webhook handler, refunds, notifications,

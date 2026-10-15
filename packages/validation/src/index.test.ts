@@ -14,6 +14,10 @@ describe("checkoutSchema", () => {
   });
 });
 it("rejects malformed option ids", () => expect(checkoutSchema.safeParse({ type: "pickup", items: [{ menuItemId: id, quantity: 1, optionIds: ["nope"] }] }).success).toBe(false));
+it("accepts cod and rejects unknown payment methods", () => {
+  expect(checkoutSchema.safeParse({ type: "pickup", paymentMethod: "cod", items: [{ menuItemId: id, quantity: 1 }] }).success).toBe(true);
+  expect(checkoutSchema.safeParse({ type: "pickup", paymentMethod: "barter", items: [{ menuItemId: id, quantity: 1 }] }).success).toBe(false);
+});
 describe("allowedTransitions", () => {
   it("kitchen cannot deliver or complete", () => {
     expect(allowedTransitions.kitchen.preparing).toEqual(["ready"]);

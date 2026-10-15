@@ -28,6 +28,7 @@ export const checkoutSchema = z.object({
   })).min(1).max(50),
   address: z.object({ line1: z.string().min(3), city: z.string().min(2), postalCode: z.string().min(3), phone: z.string().min(7) }).optional(),
   notes: z.string().max(500).optional(),
+  paymentMethod: z.enum(["online", "cod"]).default("online"),
 }).refine((v) => v.type !== "delivery" || !!v.address, { message: "Delivery address required", path: ["address"] });
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 

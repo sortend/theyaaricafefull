@@ -1,6 +1,11 @@
 import { createBrowserClient, createServerClient } from "@supabase/ssr";
-const url = () => process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const anon = () => process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+function need(name: string, v: string | undefined): string {
+  if (!v) throw new Error(`Missing ${name}. Add it in Vercel > Project > Settings > Environment Variables, then Redeploy.`);
+  return v;
+}
+// Keep the literal process.env.NEXT_PUBLIC_* references: Next.js inlines them at build time.
+const url = () => need("NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL);
+const anon = () => need("NEXT_PUBLIC_SUPABASE_ANON_KEY", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 export const browserClient = () => createBrowserClient(url(), anon());
 
